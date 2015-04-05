@@ -8,6 +8,7 @@ import android.text.format.Formatter;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Button;
 import android.widget.TextView;
 
 import java.util.Timer;
@@ -32,6 +33,8 @@ public class MainActivity extends Activity {
         server.runServer();
 
         list = (TextView) findViewById(R.id.txt_list);
+
+        Button send = (Button) findViewById(R.id.btn_send);
 
         IntentFilter intentFilter = new IntentFilter("MessageReceived");
         registerReceiver(messageReceiver,intentFilter);
