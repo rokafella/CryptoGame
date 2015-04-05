@@ -27,6 +27,7 @@ public class MessageReceiver extends BroadcastReceiver {
                 mainActivity.updateList(message);
             }
             else {
+                mainActivity.updateList(message);
                 Toast.makeText(context,message, Toast.LENGTH_SHORT).show();
             }
             Log.d("Broadcast", message);

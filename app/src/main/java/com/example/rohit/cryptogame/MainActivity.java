@@ -42,32 +42,31 @@ public class MainActivity extends Activity {
             @Override
             public void onClick(View v) {
                 String s = editText.getText().toString();
-
-                client.sendMessage(s, "255.255.255.255");
+                client.sendMessage(s,"255.255.255.255");
             }
         });
 
         IntentFilter intentFilter = new IntentFilter("MessageReceived");
         registerReceiver(messageReceiver,intentFilter);
 
-        WifiManager wm = (WifiManager) getSystemService(WIFI_SERVICE);
-        final String ip = Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress());
-
-        Timer t = new Timer();
-        t.scheduleAtFixedRate(new TimerTask() {
-                                  @Override
-                                  public void run() {
-                                      broadCastSelf(ip);
-                                  }
-                              },
-                0,
-                2000);
+//        WifiManager wm = (WifiManager) getSystemService(WIFI_SERVICE);
+//        final String ip = Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress());
+//
+//        Timer t = new Timer();
+//        t.scheduleAtFixedRate(new TimerTask() {
+//                                  @Override
+//                                  public void run() {
+//                                      broadCastSelf(ip);
+//                                  }
+//                              },
+//                0,
+//                2000);
     }
 
-    private void broadCastSelf(String s) {
-        Log.d("My IP",s);
-        client.sendMessage("*"+s,"255.255.255.255");
-    }
+//    private void broadCastSelf(String s) {
+//        Log.d("My IP",s);
+//        client.sendMessage("*"+s,"255.255.255.255");
+//    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
