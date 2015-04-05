@@ -1,32 +1,58 @@
 package com.example.rohit.cryptogame;
 
 import android.app.Activity;
+import android.content.IntentFilter;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.text.format.Formatter;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.Spinner;
 import android.widget.TextView;
 
+import java.util.Timer;
+import java.util.TimerTask;
 
-public class MainActivity extends Activity implements AdapterView.OnItemSelectedListener {
 
-    TextView tv;
+public class MainActivity extends Activity {
+
+    private UDPClient client;
+    private TextView list;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Spinner spinner = (Spinner) findViewById(R.id.spinner);
-        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,R.array.planets_array, android.R.layout.simple_spinner_item);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        spinner.setAdapter(adapter);
-        spinner.setOnItemSelectedListener(this);
-        tv = (TextView) findViewById(R.id.text_view);
+        UDPServer server = new UDPServer(this);
+        client = new UDPClient();
+        MessageReceiver messageReceiver = new MessageReceiver();
+
+        messageReceiver.setMainActivity(this);
+        server.runServer();
+
+        list = (TextView) findViewById(R.id.txt_list);
+
+        IntentFilter intentFilter = new IntentFilter("MessageReceived");
+        registerReceiver(messageReceiver,intentFilter);
+
+        WifiManager wm = (WifiManager) getSystemService(WIFI_SERVICE);
+        final String ip = Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress());
+
+        Timer t = new Timer();
+        t.scheduleAtFixedRate(new TimerTask() {
+                                  @Override
+                                  public void run() {
+                                      broadCastSelf(ip);
+                                  }
+                              },
+                0,
+                2000);
+    }
+
+    private void broadCastSelf(String s) {
+        Log.d("My IP",s);
+        client.sendMessage("*"+s,"255.255.255.255");
     }
 
     @Override
@@ -51,15 +77,7 @@ public class MainActivity extends Activity implements AdapterView.OnItemSelected
         return super.onOptionsItemSelected(item);
     }
 
-    @Override
-    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-        String message = parent.getItemAtPosition(position).toString();
-        Log.d("Spinner",message);
-        tv.setText(message);
-    }
-
-    @Override
-    public void onNothingSelected(AdapterView<?> parent) {
-
+    public void updateList(String message) {
+        list.append("\n"+ message);
     }
 }
