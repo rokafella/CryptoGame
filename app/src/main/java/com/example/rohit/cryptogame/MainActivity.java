@@ -8,7 +8,9 @@ import android.text.format.Formatter;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import java.util.Timer;
@@ -33,8 +35,17 @@ public class MainActivity extends Activity {
         server.runServer();
 
         list = (TextView) findViewById(R.id.txt_list);
+        final EditText editText = (EditText) findViewById(R.id.edit_text);
 
         Button send = (Button) findViewById(R.id.btn_send);
+        send.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String s = editText.getText().toString();
+
+                client.sendMessage(s, "255.255.255.255");
+            }
+        });
 
         IntentFilter intentFilter = new IntentFilter("MessageReceived");
         registerReceiver(messageReceiver,intentFilter);
