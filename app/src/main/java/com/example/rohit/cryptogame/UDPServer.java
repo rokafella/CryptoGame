@@ -15,14 +15,16 @@ public class UDPServer {
 
     private Context context;
     private AsyncTask<Void, Void, Void> async;
-    boolean server_active = true;
+    private boolean server_active;
     private DatagramSocket ds = null;
 
     public UDPServer(Context context) {
         this.context = context;
+        server_active = false;
     }
 
     public void runServer() {
+        server_active = true;
         async = new AsyncTask<Void, Void, Void>() {
             @Override
             protected Void doInBackground(Void... voids) {
@@ -52,5 +54,13 @@ public class UDPServer {
             }
         };
         async.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+    }
+
+    public void stopServer() {
+        server_active = false;
+    }
+
+    public void resumeServer() {
+        server_active = true;
     }
 }

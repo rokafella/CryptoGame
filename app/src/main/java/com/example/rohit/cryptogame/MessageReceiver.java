@@ -24,10 +24,9 @@ public class MessageReceiver extends BroadcastReceiver {
         if (extras != null) {
             String message = extras.getString("Message");
             if (message.length()>0 && message.charAt(0) == '*') {
-                mainActivity.updateList(message);
+                mainActivity.updateList(message.substring(1));
             }
             else {
-                mainActivity.updateList(message);
                 Toast.makeText(context,message, Toast.LENGTH_SHORT).show();
             }
             Log.d("Broadcast", message);
