@@ -2,7 +2,9 @@ package com.example.rohit.cryptogame;
 
 import android.app.Activity;
 import android.app.FragmentManager;
+import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.net.wifi.WifiManager;
@@ -16,7 +18,9 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.FrameLayout;
 import android.widget.ListView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,6 +42,8 @@ public class MainActivity extends Activity {
     private HashMap<String, String> userList;
     private ListView listView;
     private String username;
+    private ProgressBar spinner;
+    public String ip;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,10 +58,19 @@ public class MainActivity extends Activity {
         userList = new HashMap<>();
         listView = (ListView) findViewById(R.id.listView);
 
+        spinner = (ProgressBar) findViewById(R.id.progressBar1);
+
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 Log.d("List",listView.getItemAtPosition(position).toString());
+                Bundle bundle = new Bundle();
+                bundle.putString("message","Send a game request to "+listView.getItemAtPosition(position).toString());
+                bundle.putInt("id", 1);
+                bundle.putString("ip",listView.getItemAtPosition(position).toString().split(" ")[0]);
+                ConfirmDialog cd = new ConfirmDialog();
+                cd.setArguments(bundle);
+                cd.show(fm, "Dialog");
             }
         });
 
@@ -82,7 +97,7 @@ public class MainActivity extends Activity {
             welcome_text.setText("Welcome " + username);
         }
         WifiManager wm = (WifiManager) getSystemService(WIFI_SERVICE);
-        final String ip = Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress());
+        ip = Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress());
 
         Timer t = new Timer();
         t.scheduleAtFixedRate(new TimerTask() {
@@ -154,7 +169,6 @@ public class MainActivity extends Activity {
             showUserFrag();
             return true;
         }
-
         return super.onOptionsItemSelected(item);
     }
 
@@ -190,5 +204,41 @@ public class MainActivity extends Activity {
             list.add(s+" ("+hm.get(s)+")");
         }
         return list;
+    }
+
+    public void sendRequest(String from, String to, int operation) {
+        if (operation == 1) {
+            spinner.setVisibility(View.VISIBLE);
+            client.sendMessage("@"+from,to);
+        }
+        else if (operation == 2) {
+            to = to.split(":")[1].replaceAll("\\s+","");;
+            client.sendMessage("#"+from,to);
+        }
+        else if (operation == 3) {
+            to = to.split(":")[1].replaceAll("\\s+","");
+            client.sendMessage("!"+from,to);
+        }
+    }
+
+    public void showRequest(String ip) {
+        Bundle bundle = new Bundle();
+        bundle.putString("message","Accept game request from: "+ip);
+        bundle.putInt("id", 2);
+        ConfirmDialog cd = new ConfirmDialog();
+        cd.setArguments(bundle);
+        cd.show(fm,"Dialog2");
+    }
+
+    public void acceptRequest(String message) {
+        spinner.setVisibility(View.GONE);
+        Intent intent = new Intent(this, GameActivity.class);
+        startActivity(intent);
+        Toast.makeText(this, message+" accepted the request", Toast.LENGTH_SHORT);
+    }
+
+    public void requestRejected(String substring) {
+        spinner.setVisibility(View.GONE);
+        Toast.makeText(this, substring+" rejected the request", Toast.LENGTH_LONG);
     }
 }

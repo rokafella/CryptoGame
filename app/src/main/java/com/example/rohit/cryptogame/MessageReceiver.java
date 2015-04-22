@@ -26,6 +26,15 @@ public class MessageReceiver extends BroadcastReceiver {
             if (message.length()>0 && message.charAt(0) == '*') {
                 mainActivity.updateList(message.substring(1));
             }
+            else if (message.length()>0 && message.charAt(0) == '@') {
+                mainActivity.showRequest(message.substring(1));
+            }
+            else if (message.length()>0 && message.charAt(0) == '!') {
+                mainActivity.requestRejected(message.substring(1));
+            }
+            else if (message.length()>0 && message.charAt(0) == '#') {
+                mainActivity.acceptRequest(message.substring(1));
+            }
             else {
                 Toast.makeText(context,message, Toast.LENGTH_SHORT).show();
             }

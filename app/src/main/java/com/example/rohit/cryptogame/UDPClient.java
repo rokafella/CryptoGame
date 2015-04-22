@@ -19,13 +19,12 @@ public class UDPClient {
             @Override
             protected Void doInBackground(Void... voids) {
                 DatagramSocket ds = null;
-
                 try {
                     ds = new DatagramSocket();
                     InetAddress addr = InetAddress.getByName(address);
                     DatagramPacket dp = new DatagramPacket(message.getBytes(),message.length(),addr,12345);
                     ds.setBroadcast(true);
-                    Log.d("Client", "Sending message");
+                    Log.d("Client", "Sending message "+message);
                     ds.send(dp);
                 }
                 catch (Exception e) {
