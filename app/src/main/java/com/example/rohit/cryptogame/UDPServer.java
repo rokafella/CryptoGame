@@ -34,7 +34,6 @@ public class UDPServer {
                 try {
                     ds = new DatagramSocket(12345);
                     while (server_active) {
-                        Log.d("Server", "Server is running");
                         ds.receive(dp);
                         Intent i = new Intent();
                         i.setAction("MessageReceived");
@@ -57,10 +56,10 @@ public class UDPServer {
     }
 
     public void stopServer() {
-        server_active = false;
+//        server_active = false;
     }
 
     public void resumeServer() {
-        server_active = true;
+//        server_active = true;
     }
 }

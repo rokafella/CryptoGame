@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Base64;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -26,14 +27,40 @@ public class MessageReceiver extends BroadcastReceiver {
             if (message.length()>0 && message.charAt(0) == '*') {
                 mainActivity.updateList(message.substring(1));
             }
+            else if (message.length()>0 && message.charAt(0) == '$') {
+                try {
+                    String s = mainActivity.RSADecrypt(Base64.decode(message.substring(1), Base64.DEFAULT));
+                    mainActivity.updateScore(s);
+                }
+                catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
             else if (message.length()>0 && message.charAt(0) == '@') {
-                mainActivity.showRequest(message.substring(1));
+                try {
+                    String s = mainActivity.RSADecrypt(Base64.decode(message.substring(1), Base64.DEFAULT));
+                    mainActivity.showRequest(s);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
             else if (message.length()>0 && message.charAt(0) == '!') {
-                mainActivity.requestRejected(message.substring(1));
+                try {
+                    String s = mainActivity.RSADecrypt(Base64.decode(message.substring(1), Base64.DEFAULT));
+                    mainActivity.requestRejected(s);
+                }
+                catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
             else if (message.length()>0 && message.charAt(0) == '#') {
-                mainActivity.acceptRequest(message.substring(1));
+                try {
+                    String s = mainActivity.RSADecrypt(Base64.decode(message.substring(1), Base64.DEFAULT));
+                    mainActivity.acceptRequest(s);
+                }
+                catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
             else {
                 Toast.makeText(context,message, Toast.LENGTH_SHORT).show();

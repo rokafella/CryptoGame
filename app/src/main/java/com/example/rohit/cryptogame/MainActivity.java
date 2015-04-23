@@ -1,6 +1,7 @@
 package com.example.rohit.cryptogame;
 
 import android.app.Activity;
+import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.ProgressDialog;
 import android.content.Context;
@@ -10,6 +11,7 @@ import android.content.SharedPreferences;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.text.format.Formatter;
+import android.util.Base64;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -22,11 +24,21 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.nio.charset.Charset;
+import java.security.KeyFactory;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+
+import javax.crypto.Cipher;
 
 
 public class MainActivity extends Activity {
@@ -38,12 +50,22 @@ public class MainActivity extends Activity {
     private SharedPreferences sharedPref;
     private FragmentManager fm;
     private UsernameFragment fragment;
+    private FinalScreen scoreFragment;
     private TextView welcome_text;
     private HashMap<String, String> userList;
+    private HashMap<String, String> pubKeys;
     private ListView listView;
     private String username;
     private ProgressBar spinner;
+    private int userScore;
     public String ip;
+    Timer scoreTimer;
+    Timer ipTimer;
+    public boolean isFinalActive;
+    private PublicKey publicKey;
+    private PrivateKey privateKey;
+    String publicKeyString;
+    public PublicKey opponent;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,8 +76,12 @@ public class MainActivity extends Activity {
         client = new UDPClient();
         messageReceiver = new MessageReceiver();
 
+        userScore = 0;
+        isFinalActive = false;
+
         fragment = new UsernameFragment();
         userList = new HashMap<>();
+        pubKeys = new HashMap<>();
         listView = (ListView) findViewById(R.id.listView);
 
         spinner = (ProgressBar) findViewById(R.id.progressBar1);
@@ -67,7 +93,8 @@ public class MainActivity extends Activity {
                 Bundle bundle = new Bundle();
                 bundle.putString("message","Send a game request to "+listView.getItemAtPosition(position).toString());
                 bundle.putInt("id", 1);
-                bundle.putString("ip",listView.getItemAtPosition(position).toString().split(" ")[0]);
+                bundle.putString("ip", listView.getItemAtPosition(position).toString().split(" ")[0]);
+                bundle.putString("key",pubKeys.get(listView.getItemAtPosition(position).toString().split(" ")[0]));
                 ConfirmDialog cd = new ConfirmDialog();
                 cd.setArguments(bundle);
                 cd.show(fm, "Dialog");
@@ -99,15 +126,48 @@ public class MainActivity extends Activity {
         WifiManager wm = (WifiManager) getSystemService(WIFI_SERVICE);
         ip = Formatter.formatIpAddress(wm.getConnectionInfo().getIpAddress());
 
-        Timer t = new Timer();
-        t.scheduleAtFixedRate(new TimerTask() {
-                                  @Override
-                                  public void run() {
-                                      broadCastSelf(ip+"-"+username);
-                                  }
-                              },
+        ipTimer = new Timer();
+        ipTimer.scheduleAtFixedRate(new TimerTask() {
+                                        @Override
+                                        public void run() {
+                                            broadCastSelf(ip + "-" + username+"-"+publicKeyString);
+                                        }
+                                    },
                 0,
                 5000);
+
+        KeyPairGenerator kpg;
+        try {
+            kpg = KeyPairGenerator.getInstance("RSA");
+            kpg.initialize(1024);
+            KeyPair kp = kpg.genKeyPair();
+            publicKey = kp.getPublic();
+            publicKeyString = new String(Base64.encode(publicKey.getEncoded(),Base64.DEFAULT));
+            privateKey = kp.getPrivate();
+            //RSADecrypt(RSAEncrypt("Hello! World",publicKey));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public byte[] RSAEncrypt(final String plain, PublicKey key) throws Exception{
+        Cipher cipher = Cipher.getInstance("RSA");
+        cipher.init(Cipher.ENCRYPT_MODE, key);
+        byte[] encryptedBytes = cipher.doFinal(plain.getBytes());
+        return encryptedBytes;
+    }
+
+    public PublicKey getKeyFromString(String s) throws Exception {
+        byte[] b = Base64.decode(s,Base64.DEFAULT);
+        return KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(b));
+    }
+
+    public String RSADecrypt(final byte[] encryptedBytes) throws Exception{
+        Cipher cipher = Cipher.getInstance("RSA");
+        cipher.init(Cipher.DECRYPT_MODE, privateKey);
+        byte[] decryptedBytes = cipher.doFinal(encryptedBytes);
+        String decrypted = new String(decryptedBytes);
+        return decrypted;
     }
 
     private void broadCastSelf(String s) {
@@ -190,6 +250,7 @@ public class MainActivity extends Activity {
 
     public void updateList(String s) {
         String[] split = s.split("-");
+        pubKeys.put(split[0],split[2]);
         if(!userList.containsKey(split[0]) || !userList.get(split[0]).equals(split[1])){
             userList.put(split[0],split[1]);
             List<String> list = getList(userList);
@@ -212,7 +273,7 @@ public class MainActivity extends Activity {
             client.sendMessage("@"+from,to);
         }
         else if (operation == 2) {
-            to = to.split(":")[1].replaceAll("\\s+","");;
+            to = to.split(":")[1].replaceAll("\\s+","");
             client.sendMessage("#"+from,to);
         }
         else if (operation == 3) {
@@ -233,12 +294,57 @@ public class MainActivity extends Activity {
     public void acceptRequest(String message) {
         spinner.setVisibility(View.GONE);
         Intent intent = new Intent(this, GameActivity.class);
-        startActivity(intent);
-        Toast.makeText(this, message+" accepted the request", Toast.LENGTH_SHORT);
+        intent.putExtra("ip",message);
+        startActivityForResult(intent, 1);
+        Toast.makeText(this, message+" accepted the request", Toast.LENGTH_SHORT).show();
     }
 
     public void requestRejected(String substring) {
         spinner.setVisibility(View.GONE);
-        Toast.makeText(this, substring+" rejected the request", Toast.LENGTH_LONG);
+        Toast.makeText(this, substring+" rejected the request", Toast.LENGTH_LONG).show();
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if(resultCode == RESULT_OK) {
+            isFinalActive = true;
+            setUserScore(data.getIntExtra("score", 0));
+            scoreFragment = new FinalScreen();
+            broadcastScore(data.getStringExtra("ip"));
+            fl.setVisibility(View.VISIBLE);
+            fm.beginTransaction().add(R.id.frame_container,scoreFragment).commit();
+            Toast.makeText(this,"GAME ENDED", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void setUserScore(int score) {
+        userScore = score;
+    }
+
+    public int getUserScore() {
+        return userScore;
+    }
+
+    public void broadcastScore(final String opponentIP) {
+        ipTimer.cancel();
+        scoreTimer = new Timer();
+        scoreTimer.scheduleAtFixedRate(new TimerTask() {
+                                           @Override
+                                           public void run() {
+                                               try {
+                                                   byte[] encrypt = RSAEncrypt(Integer.toString(userScore), opponent);
+                                                   client.sendMessage('$'+new String(Base64.encode(encrypt, Base64.DEFAULT)), opponentIP);
+                                               } catch (Exception e){
+                                                   e.printStackTrace();
+                                               }
+                                           }
+                                       },
+                0,
+                1000);
+    }
+
+    public void updateScore(String s) {
+        scoreTimer.cancel();
+        scoreFragment.updateScore(s);
     }
 }

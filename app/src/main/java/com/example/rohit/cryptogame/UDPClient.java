@@ -24,7 +24,7 @@ public class UDPClient {
                     InetAddress addr = InetAddress.getByName(address);
                     DatagramPacket dp = new DatagramPacket(message.getBytes(),message.length(),addr,12345);
                     ds.setBroadcast(true);
-                    Log.d("Client", "Sending message "+message);
+                    Log.d("Client", "Sending message "+message+" to -"+address+"-");
                     ds.send(dp);
                 }
                 catch (Exception e) {
